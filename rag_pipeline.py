@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 from tavily import TavilyClient
 import trafilatura
 
-# LangChain 组件
+# LangChain 
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
-# 引入你原始的数据结构
+# import original data structure
 from data_schema import EvidenceBlock
 
 load_dotenv()
@@ -22,32 +22,31 @@ class MedicalRAGPipeline:
     def __init__(self, provider: Literal["openai", "groq", "cerebras"] = "openai", model_name: str = None):
         tavily_key = os.getenv("TAVILY_API_KEY")
         if not tavily_key:
-            raise ValueError("⚠️ 缺少 TAVILY_API_KEY，请在 .env 文件中配置！")
+            raise ValueError("⚠️ The TAVILY_API_KEY is missing. Please configure it in the.env file!")
         self.tavily = TavilyClient(api_key=tavily_key)
         
         self.provider = provider
         self.model_name = model_name
         
-        # 初始化两个 LLM
+        # Initialize two LLM
         self.smart_llm = self._initialize_llm(type="smart") # 70B or GPT-4o
         self.fast_llm = self._initialize_llm(type="fast")   # 8B or GPT-3.5/4o-mini
         
         print(f"🔧 Pipeline Initialized.")
-        print(f"   🧠 Smart Model (Router/Synth): {self.smart_llm.model_name}")
-        print(f"   ⚡ Fast Model (Reranker): {self.fast_llm.model_name}")
+        print(f"   Smart Model (Router/Synth): {self.smart_llm.model_name}")
+        print(f"   Fast Model (Reranker): {self.fast_llm.model_name}")
 
     def _initialize_llm(self, type="smart"):
         temperature = 0.1
         
         if self.provider == "openai":
-            # Smart用GPT-4o, Fast用GPT-4o-mini
+            # Smart:GPT-4o, Fast:GPT-4o-mini
             model = (self.model_name or "gpt-4o") if type == "smart" else "gpt-4o-mini"
             return ChatOpenAI(model=model, temperature=temperature)
             
         elif self.provider == "groq":
             api_key = os.getenv("GROQ_API_KEY")
-            # Smart用 70B, Fast用 8B (Instant)
-            # 注意：Groq 的 8B 模型通常叫 llama-3.1-8b-instant
+            # Smart: 70B, Fast: 8B (Instant)
             if type == "smart":
                 model = self.model_name or "llama-3.3-70b-versatile"
             else:
@@ -57,7 +56,7 @@ class MedicalRAGPipeline:
             
         elif self.provider == "cerebras":
             api_key = os.getenv("CEREBRAS_API_KEY")
-            # Cerebras 目前主要推 70B，8B 也可以用 llama3.1-8b
+
             model = (self.model_name or "llama-3.3-70b") if type == "smart" else "llama3.1-8b"
             return ChatOpenAI(base_url="https://api.cerebras.ai/v1", api_key=api_key, model=model, temperature=temperature)
         
@@ -68,7 +67,7 @@ class MedicalRAGPipeline:
     async def step_1_router_and_query(self, user_query: str):
         print(f"--- [Step 1] Routing & Generating Queries... ---")
         
-        # 扩展的 Source 列表 + {{ }} 转义修复
+        # Escape fix for the extended Source list {{}}
         system_prompt = """
         You are an expert Medical Research Assistant. 
         Analyze the user's query and decide which authoritative sources are needed.
@@ -101,7 +100,7 @@ class MedicalRAGPipeline:
 
     def step_2_search_web(self, queries: List[str], max_results_per_query=2):
         """
-        Step 2: Search - 每个 Query 找 2 个 (High Diversity Pool)
+        Step 2: Search - Each Query search 2 results (High Diversity Pool)
         """
         print(f"--- [Step 2] Searching Web with Tavily... ---")
         raw_results = []
@@ -123,7 +122,7 @@ class MedicalRAGPipeline:
             except Exception as e:
                 print(f"   [Error] Search failed for {q}: {e}")
         
-        # 去重
+        # dedulplication
         seen_urls = set()
         unique_results = []
         for r in raw_results:
@@ -136,7 +135,7 @@ class MedicalRAGPipeline:
 
     async def step_3_rerank_results(self, user_query: str, candidates: List[Dict], top_k=5):
         """
-        Step 3: Reranker (带有自动补位机制，防止 8B 模型选不够)
+        Step 3: Reranker 
         """
         print(f"--- [Step 3] Reranking Candidates (Top {top_k})... ---")
         
@@ -166,7 +165,7 @@ class MedicalRAGPipeline:
 
         prompt = ChatPromptTemplate.from_messages([("system", system_prompt)])
         
-        # 使用 Fast LLM (8B)
+        # use Fast LLM 
         chain = prompt | self.fast_llm | JsonOutputParser()
         
         try:
@@ -179,7 +178,7 @@ class MedicalRAGPipeline:
             if isinstance(indices, dict): indices = list(indices.values())[0]
             if not isinstance(indices, list): indices = []
             
-            # 1. 清洗索引 (去重、去非法值)
+            # 1. Clean the index (remove duplicates and illegal values)
             valid_indices = []
             for i in indices:
                 if isinstance(i, int) and 0 <= i < len(candidates):
@@ -188,8 +187,8 @@ class MedicalRAGPipeline:
             
             print(f"   -> LLM selected {len(valid_indices)} indices: {valid_indices}")
 
-            # 2. 【关键修复】自动补位 (Backfill)
-            # 如果 LLM 选的不够 k 个，从原始列表中按顺序补齐
+            # 2. [Key Fix] Auto-Backfill
+            # If the LLM selects less than k, they will be filled in sequence from the original list
             if len(valid_indices) < top_k:
                 print(f"   -> [Auto-Fix] LLM picked fewer than {top_k}. Backfilling from original list...")
                 for i in range(len(candidates)):
@@ -198,7 +197,7 @@ class MedicalRAGPipeline:
                     if len(valid_indices) == top_k:
                         break
             
-            # 3. 截取最终结果
+            # 3. Extract the final result
             selected_results = [candidates[i] for i in valid_indices]
             return selected_results
             
@@ -208,7 +207,7 @@ class MedicalRAGPipeline:
 
     async def step_4_scrape_content(self, selected_results: List[Dict]):
         """
-        Step 4: Scrape - 只抓取 Rerank 后的 Top 5
+        Step 4: Scrape - Only capture the Top 5 after Rerank
         """
         print(f"--- [Step 4] Extracting Content... ---")
         scraped_data = []
@@ -232,15 +231,15 @@ class MedicalRAGPipeline:
 
     async def step_5_synthesize_evidence(self, original_query: str, intent: str, queries_used: List[str], raw_text: str) -> EvidenceBlock:
         """
-        Step 5: Synthesize - 【恢复 V1 逻辑与数据结构】
+        Step 5: Synthesize
         """
         print(f"--- [Step 5] Synthesizing Evidence Block... ---")
         
-        # 使用你定义的 EvidenceBlock 确保输出格式一模一样
+        # Use the EvidenceBlock defined before to ensure that the output format is exactly the same
         parser = JsonOutputParser(pydantic_object=EvidenceBlock)
         format_instructions = parser.get_format_instructions()
 
-        # 这里使用 V1 风格的 Prompt，强调 evidence_sources 和 synthesis 字段
+        # Emphasize the fields of evidence_sources and synthesis
         system_prompt = """
         You are a Medical Evidence Evaluator. 
         Your goal is to create a structured "Evidence Block" strictly following the provided JSON schema.
@@ -276,7 +275,7 @@ class MedicalRAGPipeline:
                 "format_instructions": format_instructions
             })
             
-            # 手动填充元数据
+            # Manually fill in the metadata
             result['search_queries_used'] = queries_used
             if 'intent_category' not in result:
                 result['intent_category'] = intent
@@ -284,7 +283,7 @@ class MedicalRAGPipeline:
             
         except Exception as e:
             print(f"   [Synthesis Error] {e}. Retrying...")
-            # Fallback 保持 V1 结构
+            # Fallback 
             return {
                 "intent_category": intent,
                 "search_queries_used": queries_used,
