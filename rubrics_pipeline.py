@@ -50,18 +50,18 @@ except:
 
 def clean_json_output(text: str) -> Dict:
     """Enhanced JSON Parser (Handles Infinity/NaN)"""
-    # 预处理：修复 LLM 有时输出的非法 JSON 数值
-    text = text.replace("Infinity", "100") # 防止 float('inf') 导致报错，虽然很少见
+    # Preprocessing: Fix illegal JSON values sometimes output by LLMS
+    text = text.replace("Infinity", "100") # prevent float('inf') 
     text = text.replace("-Infinity", "-100")
     
     try:
         return json.loads(text)
     except:
-        # 1. Markdown 提取
+        # 1. Extraction of Markdown 
         match = re.search(r'```json\s*(\{.*?\})\s*```', text, re.DOTALL)
         if match: return json.loads(match.group(1))
         
-        # 2. 大括号提取
+        # 2. Extraction of curly braces
         match = re.search(r'(\{.*\})', text, re.DOTALL)
         if match: return json.loads(match.group(1))
         
@@ -104,7 +104,7 @@ class RubricPipeline:
     def step_1_1_atomic_extraction(self):
         """Track 1: Atomic Extraction (Abstract Definition)"""
         
-        # === 纯抽象指令，无特定案例 ===
+        # Prompt
         prompt = """You are a Medical Data Analyst. 
         Task: Decompose the provided text into a comprehensive list of Atomic Facts.
         
@@ -130,7 +130,6 @@ class RubricPipeline:
     def step_1_2_filtering(self):
         """Track 1: Relevance Filtering (Abstract Semantic Matching)"""
         
-        # === 纯逻辑匹配指令 ===
         prompt = """You are a Medical Context Filter. 
         Task: Filter the Atomic Facts to retain only those RELEVANT to the User Query.
         
@@ -163,7 +162,6 @@ class RubricPipeline:
     def step_3_synthesis(self):
         """Track 3: Synthesis 2.0 (Holistic, Goal-Oriented Generation)"""
         
-        # === 2.0 版本 Prompt：去繁就简，强调目标 ===
         prompt = """You are a Senior Medical AI Evaluator.
         
         **YOUR GOAL:**
@@ -205,7 +203,7 @@ class RubricPipeline:
         - "Explicitly warns against **alcohol use**." (Completeness, 10)
         """
         
-        # 注入 Query 以增强上下文感知
+        # Inject queries to enhance context awareness
         prompt = prompt.replace("{user_query}", self.query)
         
         inp = f"""
@@ -219,7 +217,7 @@ class RubricPipeline:
     def step_4_refinement(self):
         """Track 4: Refinement 2.0 (Audit & Supplement Strategy)"""
         
-        # === 核心修改：Auditor 不仅负责删除（过滤），还负责新增（补全） ===
+        # An Auditor used for deleting (filtering) and adding (completing) ===
         prompt = """You are a Senior Medical Lead Auditor.
         Your task is to REVIEW the Draft Rubrics and **FILL ANY GAPS** by supplementing, filtering, merging to Finalize a **Complete, Reliable, and Concise** evaluation rubric set to grade an AI's medical response.
         
@@ -256,7 +254,7 @@ class RubricPipeline:
         
         prompt = prompt.replace("{user_query}", self.query)
         
-        # === 关键：必须把 Step 1.2 的结构化事实再次传给 Step 4，否则它不知道漏了什么 ===
+        # Pass the structured facts of Step 1.2 to Step 4 again
         inp = f"""
         [Source Truth - Facts]: {json.dumps(self.debug_trace['step_1_2_filtered_facts'])}
         [Source Truth - Intent]: {json.dumps(self.debug_trace['step_2_interaction_intent'])}
