@@ -2,29 +2,27 @@ import os
 
 # ================= API CONFIG =================
 
-# 1. 确定供应商 (默认为 cerebras)
 API_PROVIDER = os.getenv("LLM_PROVIDER", "cerebras").lower()
 
-# 2. 根据供应商获取对应的密钥 (这样就不会混淆了)
 if API_PROVIDER == "groq":
-    # 优先找 GROQ_API_KEY，找不到再找 OPENAI_API_KEY
+
     API_KEY = os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
     BASE_URL = "https://api.groq.com/openai/v1"
 elif API_PROVIDER == "cerebras":
-    # 优先找 CEREBRAS_API_KEY
+
     API_KEY = os.getenv("CEREBRAS_API_KEY") or os.getenv("OPENAI_API_KEY")
     BASE_URL = "https://api.cerebras.ai/v1"
 else:
     API_KEY = os.getenv("OPENAI_API_KEY")
     BASE_URL = "https://api.openai.com/v1"
 
-# 导出给 judge_utils.py 使用
+# Export to judge_utils.py for use
 OPENAI_API_KEY = API_KEY 
 
-# 3. 模型配置
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", "llama3.1-8b")
+# model configuration
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "llama-3.3-70b")
 
-# ================= 其余配置保持不变 =================
+# ================= Configuration =================
 TIMEOUT = 60.0
 TEMPERATURE = 0.2
 N_REPEAT = 3          
