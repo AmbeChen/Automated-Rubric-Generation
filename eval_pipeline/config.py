@@ -35,5 +35,5 @@ DEBUG_DIR = f"{OUTPUT_DIR}/debug_traces"
 os.makedirs(CACHE_DIR, exist_ok=True)
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
-# 调试用：确保运行时知道自己在用哪个 Key (运行时删掉或注释掉这行)
+# For debugging: Ensure that the runtime knows which Key it is using (delete or comment out this line at runtime)
 # print(f"DEBUG: Using {API_PROVIDER} with URL {BASE_URL} and Key starting with {str(API_KEY)[:5]}")
