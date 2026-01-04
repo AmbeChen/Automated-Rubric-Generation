@@ -11,8 +11,8 @@ import random
 
 def normalize_one(parsed, A_is_reference):
     """
-    统一成 reference vs candidate 视角
-    返回:
+    Unify the reference vs candidate perspective
+    Return:
       decision: REF / CAND / SAME
       delta: score_ref - score_cand
     """
@@ -76,8 +76,8 @@ def bootstrap_ci(values, fn=np.mean, n_boot=1000, alpha=0.05):
 def main(input_file, assume_ref_better=True):
     """
     assume_ref_better:
-      True  -> reference 应该优于 candidate（reference vs perturbed）
-      False -> 不设 ground truth，只做描述统计
+      True  -> reference prior to candidate（reference vs perturbed）
+      False -> no ground truth
     """
 
     all_pairs = []
@@ -149,7 +149,7 @@ def main(input_file, assume_ref_better=True):
     # ======================
 
     if assume_ref_better:
-        # 正类 = REF 胜
+        # True = REF win
         y_true = np.array([1 if x["decision"] == "REF" else 0 for x in all_pairs])
         y_score = deltas
 
