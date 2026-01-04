@@ -1,0 +1,14 @@
+# pip install -r requirements.txt
+langchain
+langchain-openai
+langchain-groq
+duckduckgo-search
+trafilatura
+pydantic
+python-dotenv
+beautifulsoup4
+html2text
+tavily-python
+
+#pip install "numpy<2.0" --force-reinstall
+#pip install -U duckduckgo-search
