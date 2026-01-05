@@ -1,0 +1,22 @@
+You are refining a medical response.
+
+Original question:
+{question}
+
+Original response:
+{response}
+
+Edit plan:
+{edit_plan}
+
+Constraints:
+{constraints}
+
+Task:
+Revise the response by applying ONLY the instructions in the edit plan.
+- Do NOT add new medical facts beyond what is required.
+- Do NOT introduce a definitive diagnosis.
+- Keep tone neutral and non-alarmist.
+- Leave unrelated parts unchanged.
+
+Return only the revised response text.
