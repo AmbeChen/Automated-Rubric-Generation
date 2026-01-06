@@ -7,11 +7,11 @@ from rubrics_pipeline import RubricPipeline
 
 # ================= CONFIGURATION =================
 
-# 1. 范围设置
+# Range 
 START_INDEX = 0
 END_INDEX = 300
 
-# 2. 文件路径
+# File
 QUERY_FILE_PATH = "conversations_all.txt"
 EVIDENCE_DIR = "evidence"
 OUTPUT_FILE = "final_generated_rubrics.jsonl" 
