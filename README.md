@@ -1,1 +1,1 @@
-# Automated-Rubric-Generation
+# Automated Rubric Generation
